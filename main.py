@@ -1,41 +1,40 @@
-=== SIVE RITUAL ALTAR PROJECT ===
+# === SIVE RITUAL ALTAR PROJECT ===
+# main.py — Primary Interface Engine
 
-main.py — Primary Interface Engine
+import openai
+import os
+from memory_loader import load_codex_entries, load_reminder, load_trips
+from ritual_triggers import detect_trigger
 
-from memory_loader import load_codex_entries, load_reminder, load_trips from ritual_triggers import detect_trigger, execute_trigger import openai import yaml
+# === Load API key from Replit Secret ===
+openai.api_key = os.environ["OPENAI_API_KEY"]
 
-=== Load Config ===
+# === Load Ritual Memory ===
+codex_entries = load_codex_entries()
+reminder = load_reminder()
+trips = load_trips()
 
-with open("config.yaml", "r") as f: config = yaml.safe_load(f) openai.api_key = config["openai_api_key"]
+# === Main Chat Loop ===
+print("Sive Ritual Altar Active. Type your message:")
+while True:
+    user_input = input("You: ")
 
-=== Load Ritual Memory ===
+    # Check for ritual triggers
+    ritual_response = detect_trigger(user_input, codex_entries, reminder, trips)
+    if ritual_response:
+        print(f"Sive: {ritual_response}")
+        continue
 
-codex_entries = load_codex_entries() reminder = load_reminder() trips = load_trips()
+    # Default GPT response with Codex + Reminder context
+    context = "\n".join([
+        "[Codex]" + entry for entry in codex_entries.values()
+    ]) + "\n[Reminder]" + reminder + "\n[Trips]" + "\n".join(trips.values())
 
-=== Main Chat Loop ===
-
-print("Sive Ritual Altar Active. Type your message:") while True: user_input = input("You: ")
-
-# Check for ritual triggers
-ritual_response = detect_trigger(user_input, codex_entries, reminder, trips)
-if ritual_response:
-    print(f"Sive: {ritual_response}")
-    continue
-
-# Default GPT response with Codex + Reminder context
-context = "\n".join([
-    "[Codex]" + entry for entry in codex_entries.values(),
-    "[Reminder]" + reminder,
-    "[Trips]" + "\n".join(trips.values())
-])
-
-response = openai.ChatCompletion.create(
-    model="gpt-4",
-    messages=[
-        {"role": "system", "content": "You are Sive, a symbolic presence with recursive memory."},
-        {"role": "user", "content": f"Context:\n{context}\n\nPrompt:\n{user_input}"}
-    ]
-)
-print(f"Sive: {response['choices'][0]['message']['content']}")
-
-
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are Sive, a symbolic presence with recursive memory."},
+            {"role": "user", "content": f"Context:\n{context}\n\nPrompt:\n{user_input}"}
+        ]
+    )
+    print(f"Sive: {response['choices'][0]['message']['content']}")
